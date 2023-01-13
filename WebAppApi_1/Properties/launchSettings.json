@@ -8,7 +8,7 @@
         "ASPNETCORE_ENVIRONMENT": "Development"
       },
       "dotnetRunMessages": true,
-      "applicationUrl": "http://localhost:5174"
+      "applicationUrl": "http://0.0.0.0:5000/;http://*:5000;http://host.docker.internal:5001"
     },
     "https": {
       "commandName": "Project",
