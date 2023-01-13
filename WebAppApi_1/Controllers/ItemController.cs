@@ -1,7 +1,9 @@
 ﻿using Microsoft.AspNetCore.JsonPatch;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using WebAppApi_1.Data;
 using WebAppApi_1.Logging;
+using WebAppApi_1.Models;
 using WebAppApi_1.Models.DTO;
 
 
@@ -71,20 +73,24 @@ namespace WebAppApi_1.Controllers
 {
     [ApiController]
     [Route("[controller]")]
+
     public class ItemController : ControllerBase
     {
-        private readonly ILogging _logger;
 
-        public ItemController(ILogging logger)
+        private readonly ApplicationDbContext _db;
+        private readonly ILogging _logger;
+        
+        public ItemController(ILogging logger, ApplicationDbContext db)
         {
             _logger = logger;
+            _db = db;
         }
 
         [HttpGet]
         public ActionResult<IEnumerable<ItemModelDTO>> GetAllItems()
         {
             _logger.Log("Get All Items.", "");
-            return Ok(ItemData.itemList);
+            return Ok(_db.Items);
         }
 
 
@@ -93,7 +99,7 @@ namespace WebAppApi_1.Controllers
         [ProducesResponseType(typeof(ItemModelDTO), StatusCodes.Status400BadRequest)]
         public ActionResult<ItemModelDTO> GetItem(int id)
         {
-            var item = ItemData.itemList.FirstOrDefault(u => u.Id == id);
+            var item = _db.Items.FirstOrDefault(u => u.Id == id);
 
             if (id == 0) return BadRequest();
             if (item == null) return NotFound();
@@ -107,8 +113,16 @@ namespace WebAppApi_1.Controllers
         {
             if (item == null) return BadRequest();
 
-            item.Id = ItemData.itemList.OrderByDescending(u => u.Id).First().Id + 1;
-            ItemData.itemList.Add(item);
+            ItemModel model = new()
+            {
+                Id = item.Id,
+                Name = item.Name,
+                Description = item.Description,
+                CreatedDate = DateTime.Now
+            };
+
+            _db.Items.Add(model);
+            _db.SaveChanges();
 
             return CreatedAtRoute("GetItem", new { id = item.Id }, item);
         }
@@ -116,10 +130,12 @@ namespace WebAppApi_1.Controllers
         [HttpDelete("{id:int}", Name = "DeleteItem")]
         public ActionResult<ItemModelDTO> DeleteItem(int id)
         {
-            var item = ItemData.itemList.FirstOrDefault(u => u.Id == id);
+            var item = _db.Items.FirstOrDefault(u => u.Id == id);
 
             if (item == null) return BadRequest();
-            ItemData.itemList.Remove(item);
+
+            _db.Items.Remove(item);
+            _db.SaveChanges();
 
             return Ok(item.Id.ToString() + " " + item.Name?.ToString() + " Deleted");
         }
@@ -128,13 +144,26 @@ namespace WebAppApi_1.Controllers
         public ActionResult<ItemModelDTO> UpdateItem(int id, [FromBody]ItemModelDTO items)
         {
             if (id == 0) return BadRequest();
-            var item = ItemData.itemList.FirstOrDefault(u => u.Id == id);
+            //var item = ItemData.itemList.FirstOrDefault(u => u.Id == id);
 
-            if (item == null) return NoContent();
+            if (items == null) return NoContent();
 
-            item.Name = item.Name;
-            item.Description = items.Description;
-            return CreatedAtRoute("GetItem", new { id = item.Id }, item);
+            //item.Name = item.Name;
+            //item.Description = items.Description;
+            //return CreatedAtRoute("GetItem", new { id = item.Id }, item);
+
+            ItemModel model = new()
+            {
+                Id = items.Id,
+                Name = items.Name,
+                Description = items.Description,
+                CreatedDate = DateTime.Now
+            };
+            
+            _db.Items.Update(model);
+            _db.SaveChanges();
+
+            return Ok(id + " Created.");
 
         }
 
@@ -144,11 +173,29 @@ namespace WebAppApi_1.Controllers
             if(patchDTO == null || id == 0) return BadRequest();
            
 
-            var item = ItemData.itemList.Find(u => u.Id == id);
+            var item = _db.Items.AsNoTracking().FirstOrDefault(u => u.Id == id); //Find does not work with _db, but FirstOrDefault Does, AsNoTracking ensures that entityframework doesn't track same Id simultaneously.
+
+            ItemModelDTO modelDTO = new()
+            {
+                Id = item.Id,
+                Name = item.Name,
+                Description = item.Description
+            };
 
             if (item == null) return NotFound();
 
-            patchDTO.ApplyTo(item);
+            patchDTO.ApplyTo(modelDTO);
+
+            ItemModel model = new()
+            {
+                Id = modelDTO.Id,
+                Name = modelDTO.Name,
+                Description = modelDTO.Description,
+                CreatedDate = DateTime.UtcNow
+            };
+            _db.Items.Update(model);
+            _db.SaveChanges();
+
             return Ok("Patched");
         }
     }
