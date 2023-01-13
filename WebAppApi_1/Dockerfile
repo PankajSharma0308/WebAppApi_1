@@ -12,11 +12,14 @@ RUN dotnet restore "WebAppApi_1/WebAppApi_1.csproj"
 COPY . .
 WORKDIR "/src/WebAppApi_1"
 RUN dotnet build "WebAppApi_1.csproj" -c Release -o /app/build
-
-FROM build AS publish
-RUN dotnet publish "WebAppApi_1.csproj" -c Release -o /app/publish /p:UseAppHost=false
-
-FROM base AS final
 WORKDIR /app
-COPY --from=publish /app/publish .
-ENTRYPOINT ["dotnet", "WebAppApi_1.dll"]
+CMD ["dotnet", "run"]
+
+#
+#FROM build AS publish
+#RUN dotnet publish "WebAppApi_1.csproj" -c Release -o /app/publish /p:UseAppHost=false
+#
+#FROM base AS final
+#WORKDIR /app
+#COPY --from=publish /app/publish .
+#ENTRYPOINT ["dotnet", "WebAppApi_1.dll"]

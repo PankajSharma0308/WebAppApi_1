@@ -125,14 +125,15 @@ namespace WebAppApi_1.Controllers
         }
 
         [HttpPut("{id:int}", Name = "UpdateItem")]
-        public ActionResult<ItemModelDTO> UpdateItem(int id, string? name)
+        public ActionResult<ItemModelDTO> UpdateItem(int id, [FromBody]ItemModelDTO items)
         {
             if (id == 0) return BadRequest();
             var item = ItemData.itemList.FirstOrDefault(u => u.Id == id);
 
             if (item == null) return NoContent();
 
-            item.Name = name;
+            item.Name = item.Name;
+            item.Description = items.Description;
             return CreatedAtRoute("GetItem", new { id = item.Id }, item);
 
         }

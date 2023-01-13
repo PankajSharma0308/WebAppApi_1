@@ -9,6 +9,8 @@ namespace WebAppApi_1.Models.DTO
         [Required]
         [MaxLength(50)]
         public string? Name { get; set; }
+        public string? Description { get; set; }
+
 
     }
 }
